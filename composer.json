@@ -51,7 +51,11 @@
             "@php artisan test"
         ],
         "test:docker": [
-            "docker compose run --rm --no-deps -e DB_CONNECTION=sqlite -e DB_DATABASE=:memory: -e CACHE_STORE=array -e QUEUE_CONNECTION=sync --entrypoint php app artisan test"
+            "docker compose run --rm --no-deps -e DB_CONNECTION=sqlite -e DB_DATABASE=:memory: -e CACHE_STORE=array -e QUEUE_CONNECTION=sync --entrypoint php php artisan test"
+        ],
+        "test:integration": [
+            "@php artisan config:clear --ansi",
+            "docker compose run --rm -e APP_ENV=testing -e DB_CONNECTION=pgsql -e DB_HOST=postgres -e DB_DATABASE=notifications -e DB_USERNAME=notifications -e DB_PASSWORD=secret -e CACHE_STORE=redis -e REDIS_CLIENT=predis -e REDIS_HOST=redis -e QUEUE_CONNECTION=rabbitmq -e RABBITMQ_HOST=rabbitmq -e RABBITMQ_USER=guest -e RABBITMQ_PASSWORD=guest --entrypoint php php vendor/bin/phpunit -c phpunit.integration.xml"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

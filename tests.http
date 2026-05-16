@@ -1,0 +1,137 @@
+@baseUrl = http://localhost:8080/api/v1
+
+###
+# Health / welcome (корень приложения)
+GET http://localhost:8080/
+
+###
+# --- Массовая рассылка: SMS, срочное (critical → очередь notifications-critical) ---
+POST {{baseUrl}}/notifications/bulk
+Content-Type: application/json
+Idempotency-Key: sms-critical-{{$timestamp}}
+
+{
+  "channel": "sms",
+  "message": "Срочный SMS: ваш код подтверждения 1113",
+  "recipient_ids": ["subscriber-sms-critical"],
+  "priority": "critical"
+}
+
+###
+# --- Массовая рассылка: SMS, обычное (normal → очередь notifications-normal) ---
+POST {{baseUrl}}/notifications/bulk
+Content-Type: application/json
+Idempotency-Key: sms-normal-{{$timestamp}}
+
+{
+  "channel": "sms",
+  "message": "Обычный SMS: скидка 20% до конца недели",
+  "recipient_ids": ["subscriber-sms-normal"],
+  "priority": "normal"
+}
+
+###
+# --- Массовая рассылка: Email, срочное ---
+POST {{baseUrl}}/notifications/bulk
+Content-Type: application/json
+Idempotency-Key: email-critical-{{$timestamp}}
+
+{
+  "channel": "email",
+  "message": "Срочный Email: ссылка для сброса пароля",
+  "recipient_ids": ["subscriber-email-critical"],
+  "priority": "critical"
+}
+
+###
+# --- Массовая рассылка: Email, обычное ---
+POST {{baseUrl}}/notifications/bulk
+Content-Type: application/json
+Idempotency-Key: email-normal-{{$timestamp}}
+
+{
+  "channel": "email",
+  "message": "Обычный Email: еженедельная рассылка новостей",
+  "recipient_ids": ["subscriber-email-normal"],
+  "priority": "normal"
+}
+
+###
+# Массовая рассылка: несколько получателей, приоритет по умолчанию (normal)
+POST {{baseUrl}}/notifications/bulk
+Content-Type: application/json
+Idempotency-Key: bulk-multi-{{$timestamp}}
+
+{
+  "channel": "sms",
+  "message": "Общее сообщение для группы",
+  "recipient_ids": ["user-1", "user-2", "user-3"]
+}
+
+###
+# Идемпотентность: повтор того же Idempotency-Key (вернёт тот же bulk_dispatch, без дублей)
+POST {{baseUrl}}/notifications/bulk
+Content-Type: application/json
+Idempotency-Key: fixed-idempotency-key-demo
+
+{
+  "channel": "sms",
+  "message": "Проверка идемпотентности",
+  "recipient_ids": ["user-idempotent"],
+  "priority": "normal"
+}
+
+###
+# Мок: permanent error → статус discarded (subscriber_id с префиксом invalid-)
+POST {{baseUrl}}/notifications/bulk
+Content-Type: application/json
+Idempotency-Key: mock-invalid-{{$timestamp}}
+
+{
+  "channel": "sms",
+  "message": "Сообщение на невалидный номер",
+  "recipient_ids": ["invalid-phone-001"],
+  "priority": "critical"
+}
+
+###
+# Мок: transient error → повторные попытки (subscriber_id с префиксом transient-)
+POST {{baseUrl}}/notifications/bulk
+Content-Type: application/json
+Idempotency-Key: mock-transient-{{$timestamp}}
+
+{
+  "channel": "email",
+  "message": "Сообщение с временной ошибкой шлюза",
+  "recipient_ids": ["transient-mail-001"],
+  "priority": "normal"
+}
+
+###
+# История подписчика: все уведомления
+GET {{baseUrl}}/subscribers/subscriber-sms-critical/notifications
+
+###
+GET {{baseUrl}}/subscribers/subscriber-sms-normal/notifications
+
+###
+GET {{baseUrl}}/subscribers/subscriber-email-critical/notifications
+
+###
+GET {{baseUrl}}/subscribers/subscriber-email-normal/notifications
+
+###
+# История: только доставленные
+GET {{baseUrl}}/subscribers/subscriber-sms-critical/notifications?status=delivered
+
+###
+# История: в очереди / отправленные / отброшенные
+GET {{baseUrl}}/subscribers/subscriber-sms-critical/notifications?status=queued
+###
+GET {{baseUrl}}/subscribers/subscriber-sms-critical/notifications?status=sent
+###
+GET {{baseUrl}}/subscribers/invalid-phone-001/notifications?status=discarded
+
+###
+# Пагинация
+GET {{baseUrl}}/subscribers/subscriber-sms-critical/notifications?per_page=10

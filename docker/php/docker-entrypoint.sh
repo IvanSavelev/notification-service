@@ -11,6 +11,7 @@ fi
 
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     php artisan migrate --force --no-interaction
+    php artisan notifications:ensure-queues
 fi
 
 exec "$@"

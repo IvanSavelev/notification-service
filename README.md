@@ -21,6 +21,26 @@ docker compose up --build
 API: `http://localhost:8080`  
 RabbitMQ Management: `http://localhost:15672` (guest/guest)
 
+### Xdebug (разработка)
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build php nginx
+```
+
+1. В Cursor/VS Code: **Run and Debug** → `Listen for Xdebug (Docker)` (порт **9003**).
+2. Поставьте breakpoint в PHP-коде.
+3. Запустите запрос с триггером (режим `trigger` по умолчанию):
+   - браузерное расширение Xdebug, или
+   - `http://localhost:8080/?XDEBUG_TRIGGER=1`, или
+   - заголовок `Cookie: XDEBUG_TRIGGER=1` в `tests.http`.
+
+IDE слушает на хосте, PHP в контейнере подключается на `host.docker.internal:9003`.
+
+Всегда включать отладку (медленнее): в `docker/php/conf.d/xdebug.ini` замените  
+`xdebug.start_with_request=trigger` на `yes` и пересоберите образ.
+
+Проверка: `docker compose exec php php -v` — в выводе должно быть `with Xdebug`.
+
 ## API
 
 ### Массовая рассылка
@@ -62,13 +82,31 @@ RabbitMQ Management: `http://localhost:15672` (guest/guest)
 composer test
 ```
 
-В Docker:
+В Docker (unit/feature, без RabbitMQ):
 
 ```bash
 composer test:docker
 ```
 
-Интеграционные тесты проверяют цепочку API → очередь (fake/sync) → БД → mock-провайдер.
+### Интеграционные тесты (RabbitMQ + Redis + PostgreSQL)
+
+Нужен поднятый стек: `docker compose up -d`.
+
+```bash
+composer test:integration
+```
+
+Отдельный suite: `phpunit.integration.xml`, каталог `tests/Integration/`.  
+Проверяется реальная цепочка: API → RabbitMQ → worker (`rabbitmq:consume --once`) → mock-шлюз → `delivered`.
+
+Локально (без Docker для PHP), если сервисы на localhost:
+
+```bash
+DB_HOST=127.0.0.1 REDIS_HOST=127.0.0.1 RABBITMQ_HOST=127.0.0.1 \
+  vendor/bin/phpunit -c phpunit.integration.xml
+```
+
+Feature-тесты (`tests/Feature`) используют `Queue::fake()` и sqlite — это быстрые тесты без брокера.
 
 ## Моки шлюзов
 
