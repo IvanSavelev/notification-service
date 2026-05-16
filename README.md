@@ -19,6 +19,7 @@ docker compose up --build
 ```
 
 API: `http://localhost:8080`  
+**Swagger (OpenAPI):** [http://localhost:8080/docs](http://localhost:8080/docs) — спецификация: `/docs/openapi.yaml`  
 RabbitMQ Management: `http://localhost:15672` (guest/guest)
 
 ### Xdebug (разработка)

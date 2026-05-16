@@ -1,0 +1,291 @@
+openapi: 3.0.3
+info:
+  title: Notification Service API
+  description: |
+    Микросервис массовых SMS/Email-уведомлений с приоритизацией, идемпотентностью и статусами доставки.
+
+    ## Очереди RabbitMQ
+    - `critical` → `notifications-critical`
+    - `normal` (по умолчанию) → `notifications-normal`
+
+    ## Статусы уведомления
+    `queued` → `sent` → `delivered` или `discarded`
+
+    ## Моки шлюзов (subscriber_id)
+    | Префикс | Поведение |
+    |---------|-----------|
+    | `invalid-*` | permanent error → `discarded` |
+    | `transient-*` | temporary error → retry |
+    | остальные | успешная доставка |
+
+    ## Тестирование
+    - Swagger UI: `/docs`
+    - HTTP-файл для IDE: `tests.http` (в репозитории)
+  version: 1.0.0
+  contact:
+    name: Notification Service
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Docker (nginx)
+  - url: http://localhost:8000/api/v1
+    description: Локальный PHP / artisan serve
+
+tags:
+  - name: Notifications
+    description: Массовая рассылка
+  - name: Subscribers
+    description: История уведомлений подписчика
+
+paths:
+  /notifications/bulk:
+    post:
+      tags: [Notifications]
+      summary: Массовая рассылка
+      description: |
+        Создаёт уведомления для списка получателей и ставит задачи в RabbitMQ.
+        Требует заголовок `Idempotency-Key` (UUID). Повтор с тем же ключом не создаёт дубликаты.
+      operationId: createBulkNotifications
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkNotificationRequest'
+            examples:
+              smsCritical:
+                summary: Срочное SMS
+                value:
+                  channel: sms
+                  message: "Срочный SMS: ваш код подтверждения 1111"
+                  recipient_ids: [subscriber-sms-critical]
+                  priority: critical
+              smsNormal:
+                summary: Обычное SMS
+                value:
+                  channel: sms
+                  message: "Обычный SMS: скидка 20%"
+                  recipient_ids: [subscriber-sms-normal]
+                  priority: normal
+              emailCritical:
+                summary: Срочный Email
+                value:
+                  channel: email
+                  message: "Срочный Email: ссылка для сброса пароля"
+                  recipient_ids: [subscriber-email-critical]
+                  priority: critical
+              multiRecipients:
+                summary: Несколько получателей (priority по умолчанию normal)
+                value:
+                  channel: sms
+                  message: "Общее сообщение для группы"
+                  recipient_ids: [user-1, user-2, user-3]
+      responses:
+        '202':
+          description: Уведомления приняты в обработку (статус queued)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkNotificationResponse'
+        '422':
+          description: Ошибка валидации или отсутствует Idempotency-Key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              examples:
+                missingIdempotencyKey:
+                  value:
+                    message: Idempotency-Key header is required
+                validationFailed:
+                  value:
+                    message: The channel field is required.
+                    errors:
+                      channel: [The channel field is required.]
+
+  /subscribers/{subscriberId}/notifications:
+    get:
+      tags: [Subscribers]
+      summary: История уведомлений подписчика
+      description: Список уведомлений с опциональной фильтрацией по статусу и пагинацией.
+      operationId: listSubscriberNotifications
+      parameters:
+        - $ref: '#/components/parameters/SubscriberId'
+        - name: status
+          in: query
+          description: Фильтр по статусу
+          schema:
+            $ref: '#/components/schemas/NotificationStatus'
+        - name: per_page
+          in: query
+          description: Размер страницы (по умолчанию 50)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        '200':
+          description: Список уведомлений
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriberNotificationsResponse'
+        '404':
+          description: Не используется — пустой список при неизвестном подписчике
+
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Уникальный ключ bulk-операции (рекомендуется UUID)
+      schema:
+        type: string
+        format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440000
+    SubscriberId:
+      name: subscriberId
+      in: path
+      required: true
+      description: Идентификатор подписчика (номер, email, user id)
+      schema:
+        type: string
+        maxLength: 64
+        example: subscriber-sms-critical
+
+  schemas:
+    NotificationChannel:
+      type: string
+      enum: [sms, email]
+
+    NotificationPriority:
+      type: string
+      enum: [critical, normal]
+      default: normal
+
+    NotificationStatus:
+      type: string
+      enum: [queued, sent, delivered, discarded]
+
+    BulkNotificationRequest:
+      type: object
+      required: [channel, message, recipient_ids]
+      properties:
+        channel:
+          $ref: '#/components/schemas/NotificationChannel'
+        message:
+          type: string
+          minLength: 1
+          maxLength: 5000
+          example: "Ваш код: 1234"
+        recipient_ids:
+          type: array
+          minItems: 1
+          maxItems: 10000
+          items:
+            type: string
+            maxLength: 64
+          example: [user-1, user-2]
+        priority:
+          $ref: '#/components/schemas/NotificationPriority'
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 019e32ed-f2eb-7000-aae3-bfb1c1e69570
+        subscriber_id:
+          type: string
+          example: subscriber-sms-critical
+        channel:
+          $ref: '#/components/schemas/NotificationChannel'
+        priority:
+          $ref: '#/components/schemas/NotificationPriority'
+        message:
+          type: string
+        status:
+          $ref: '#/components/schemas/NotificationStatus'
+        provider_reference:
+          type: string
+          nullable: true
+          example: sms-964a0266-e54d-4d24-9793-e589c70fd496
+        error_message:
+          type: string
+          nullable: true
+        attempts:
+          type: integer
+          nullable: true
+        sent_at:
+          type: string
+          format: date-time
+          nullable: true
+        delivered_at:
+          type: string
+          format: date-time
+          nullable: true
+        discarded_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    BulkNotificationResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        last_page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer
+
+    SubscriberNotificationsResponse:
+      type: object
+      properties:
+        subscriber_id:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
