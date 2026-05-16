@@ -1,16 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Integration;
 
 use App\Enums\NotificationStatus;
-use App\Models\Notification;
 use Illuminate\Support\Str;
 
-class NotificationRabbitMqFlowTest extends IntegrationTestCase
+final class NotificationRabbitMqFlowTest extends IntegrationTestCase
 {
     public function test_normal_sms_flows_through_rabbitmq_to_delivered(): void
     {
-        $subscriberId = 'integration-sms-normal-'.Str::uuid()->toString();
+        $subscriberId = 'integration-sms-normal-' . Str::uuid()->toString();
 
         $response = $this->postBulk([
             'channel' => 'sms',
@@ -35,7 +36,7 @@ class NotificationRabbitMqFlowTest extends IntegrationTestCase
 
     public function test_critical_email_uses_critical_queue(): void
     {
-        $subscriberId = 'integration-email-critical-'.Str::uuid()->toString();
+        $subscriberId = 'integration-email-critical-' . Str::uuid()->toString();
 
         $response = $this->postBulk([
             'channel' => 'email',
@@ -58,7 +59,7 @@ class NotificationRabbitMqFlowTest extends IntegrationTestCase
 
     public function test_idempotency_with_redis_and_database(): void
     {
-        $key = 'integration-idempotency-'.Str::uuid()->toString();
+        $key = 'integration-idempotency-' . Str::uuid()->toString();
         $payload = [
             'channel' => 'sms',
             'message' => 'Idempotent integration',
@@ -80,7 +81,7 @@ class NotificationRabbitMqFlowTest extends IntegrationTestCase
 
     public function test_invalid_subscriber_is_discarded_via_worker(): void
     {
-        $subscriberId = 'invalid-integration-'.Str::uuid()->toString();
+        $subscriberId = 'invalid-integration-' . Str::uuid()->toString();
 
         $response = $this->postBulk([
             'channel' => 'sms',

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\NotificationChannel;
@@ -9,11 +11,12 @@ use App\Http\Resources\NotificationResource;
 use App\Services\BulkNotificationService;
 use Illuminate\Http\JsonResponse;
 
-class BulkNotificationController extends Controller
+final class BulkNotificationController extends Controller
 {
     public function __construct(
         private readonly BulkNotificationService $bulkNotificationService,
-    ) {}
+    ) {
+    }
 
     public function store(BulkNotificationRequest $request): JsonResponse
     {

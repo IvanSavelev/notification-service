@@ -1,12 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Enums;
 
 enum NotificationPriority: string
 {
-    case Critical = 'critical';
-    case Normal = 'normal';
-
     public function queueName(): string
     {
         return match ($this) {
@@ -14,4 +13,6 @@ enum NotificationPriority: string
             self::Normal => 'notifications-normal',
         };
     }
+    case Critical = 'critical';
+    case Normal = 'normal';
 }

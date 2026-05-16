@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Enums\NotificationChannel;
@@ -12,11 +14,12 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
-class BulkNotificationService
+final class BulkNotificationService
 {
     public function __construct(
         private readonly IdempotencyService $idempotency,
-    ) {}
+    ) {
+    }
 
     /**
      * @param  list<string>  $recipientIds

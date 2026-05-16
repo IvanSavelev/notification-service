@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Contracts\NotificationGatewayInterface;
@@ -8,7 +10,7 @@ use App\Gateways\EmailGatewayMock;
 use App\Gateways\SmsGatewayMock;
 use InvalidArgumentException;
 
-class GatewayResolver
+final class GatewayResolver
 {
     public function resolve(NotificationChannel $channel): NotificationGatewayInterface
     {

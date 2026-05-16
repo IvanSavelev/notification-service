@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Enums\NotificationStatus;
@@ -9,11 +11,12 @@ use App\Jobs\ConfirmDeliveryJob;
 use App\Models\Notification;
 use Illuminate\Support\Facades\DB;
 
-class NotificationSender
+final class NotificationSender
 {
     public function __construct(
         private readonly GatewayResolver $gatewayResolver,
-    ) {}
+    ) {
+    }
 
     public function send(string $notificationId): void
     {

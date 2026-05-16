@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Enums\NotificationChannel;
@@ -9,7 +11,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Notification extends Model
+final class Notification extends Model
 {
     use HasUuids;
 
@@ -28,6 +30,11 @@ class Notification extends Model
         'discarded_at',
     ];
 
+    public function bulkDispatch(): BelongsTo
+    {
+        return $this->belongsTo(BulkDispatch::class);
+    }
+
     protected function casts(): array
     {
         return [
@@ -38,10 +45,5 @@ class Notification extends Model
             'delivered_at' => 'datetime',
             'discarded_at' => 'datetime',
         ];
-    }
-
-    public function bulkDispatch(): BelongsTo
-    {
-        return $this->belongsTo(BulkDispatch::class);
     }
 }

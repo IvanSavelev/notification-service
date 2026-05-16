@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Services\NotificationSender;
@@ -9,15 +11,19 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-class ConfirmDeliveryJob implements ShouldQueue
+final class ConfirmDeliveryJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
 
     public int $tries = 3;
 
     public function __construct(
         public readonly string $notificationId,
-    ) {}
+    ) {
+    }
 
     public function handle(NotificationSender $sender): void
     {

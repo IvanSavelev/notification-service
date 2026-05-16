@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Exceptions;
 
 use RuntimeException;
 
-class TransientGatewayException extends RuntimeException
+final class TransientGatewayException extends RuntimeException
 {
 }

@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
 
-class IdempotencyService
+final class IdempotencyService
 {
     private const TTL_SECONDS = 86400;
 

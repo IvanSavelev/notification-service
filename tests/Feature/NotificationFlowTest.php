@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Enums\NotificationStatus;
@@ -11,7 +13,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-class NotificationFlowTest extends TestCase
+final class NotificationFlowTest extends TestCase
 {
     use RefreshDatabase;
 

@@ -8,3 +8,4 @@ storage/framework/sessions/*
 storage/framework/views/*
 .phpunit.result.cache
 tests
+php-cs-fixer/vendor/*

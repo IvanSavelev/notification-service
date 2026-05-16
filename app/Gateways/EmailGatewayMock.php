@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Gateways;
 
 use App\Contracts\NotificationGatewayInterface;
@@ -8,7 +10,7 @@ use App\Exceptions\TransientGatewayException;
 use App\Models\Notification;
 use Illuminate\Support\Str;
 
-class EmailGatewayMock implements NotificationGatewayInterface
+final class EmailGatewayMock implements NotificationGatewayInterface
 {
     public function send(Notification $notification): string
     {
@@ -22,7 +24,7 @@ class EmailGatewayMock implements NotificationGatewayInterface
             throw new TransientGatewayException('Email gateway temporarily unavailable');
         }
 
-        return 'email-'.Str::uuid()->toString();
+        return 'email-' . Str::uuid()->toString();
     }
 
     public function isDelivered(string $providerReference): bool

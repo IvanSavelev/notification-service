@@ -1,20 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class () extends Migration {
     public function up(): void
     {
-        Schema::create('bulk_dispatches', function (Blueprint $table) {
+        Schema::create('bulk_dispatches', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->string('idempotency_key', 128)->unique();
             $table->timestamps();
         });
 
-        Schema::create('notifications', function (Blueprint $table) {
+        Schema::create('notifications', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignUuid('bulk_dispatch_id')->constrained('bulk_dispatches')->cascadeOnDelete();
             $table->string('subscriber_id', 64);

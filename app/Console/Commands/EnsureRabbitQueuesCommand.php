@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use VladimirYuldashev\LaravelQueueRabbitMQ\Queue\Connectors\RabbitMQConnector;
 use VladimirYuldashev\LaravelQueueRabbitMQ\Queue\RabbitMQQueue;
 
-class EnsureRabbitQueuesCommand extends Command
+final class EnsureRabbitQueuesCommand extends Command
 {
     protected $signature = 'notifications:ensure-queues {connection=rabbitmq}';
 
@@ -14,7 +16,7 @@ class EnsureRabbitQueuesCommand extends Command
 
     public function handle(RabbitMQConnector $connector): int
     {
-        $config = $this->laravel['config']->get('queue.connections.'.$this->argument('connection'));
+        $config = $this->laravel['config']->get('queue.connections.' . $this->argument('connection'));
 
         /** @var RabbitMQQueue $queue */
         $queue = $connector->connect($config);
