@@ -43,14 +43,16 @@ services:
       redis:
         condition: service_started
 
-  worker:
+  worker-critical:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    command: php artisan rabbitmq:consume rabbitmq --queue=notifications-critical,notifications-normal --sleep=1 --tries=5 --timeout=120
+    command: >
+      sh -c "php artisan rabbitmq:queue-declare notifications-critical
+      && exec php artisan rabbitmq:consume rabbitmq --queue=notifications-critical --sleep=1 --tries=5 --timeout=120"
     volumes:
       - ./:/var/www/html
-    environment:
+    environment: &worker_env
       APP_ENV: ${APP_ENV:-local}
       APP_KEY: ${APP_KEY:-}
       DB_CONNECTION: pgsql
@@ -68,7 +70,7 @@ services:
       RABBITMQ_USER: ${RABBITMQ_USER:-guest}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
       RABBITMQ_VHOST: /
-    depends_on:
+    depends_on: &worker_depends
       app:
         condition: service_started
       postgres:
@@ -77,6 +79,18 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+
+  worker-normal:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    command: >
+      sh -c "php artisan rabbitmq:queue-declare notifications-normal
+      && exec php artisan rabbitmq:consume rabbitmq --queue=notifications-normal --sleep=1 --tries=5 --timeout=120"
+    volumes:
+      - ./:/var/www/html
+    environment: *worker_env
+    depends_on: *worker_depends
 
   postgres:
     image: postgres:16-alpine
