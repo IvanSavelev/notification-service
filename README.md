@@ -4,7 +4,7 @@
 
 ## Стек
 
-- PHP 8.3, Laravel 12
+- PHP 8.4, Laravel 12
 - PostgreSQL
 - RabbitMQ (`vladimir-yuldashev/laravel-queue-rabbitmq`)
 - Redis (кэш / дедупликация)
@@ -14,8 +14,21 @@
 
 ```bash
 cp .env.example .env
-# при необходимости: php artisan key:generate
 docker compose up --build
+```
+
+При первом старте entrypoint в контейнере `php` (с блокировкой на общем volume, чтобы не гоняться с воркерами):
+
+- `composer install`, если нет `vendor/`;
+- `php artisan key:generate`, если в `.env` ещё нет `APP_KEY=base64:...`;
+- миграции и объявление очередей RabbitMQ (`notifications:ensure-queues`).
+
+Пересборка образа после изменения `docker/php/docker-entrypoint.sh`: `docker compose up --build`.
+
+Полный сброс данных (PostgreSQL, Redis):
+
+```bash
+docker compose down -v
 ```
 
 API: `http://localhost:8080`  
@@ -93,12 +106,16 @@ composer test:docker
 
 Нужен поднятый стек: `docker compose up -d`.
 
+Тесты сами вызывают `rabbitmq:consume --once`, поэтому перед прогоном **остановите фоновые воркеры** (иначе они заберут сообщения из очереди раньше теста):
+
 ```bash
+docker compose stop worker-critical worker-normal
 composer test:integration
+docker compose start worker-critical worker-normal
 ```
 
 Отдельный suite: `phpunit.integration.xml`, каталог `tests/Integration/`.  
-Проверяется реальная цепочка: API → RabbitMQ → worker (`rabbitmq:consume --once`) → mock-шлюз → `delivered`.
+Проверяется реальная цепочка: API → RabbitMQ → `rabbitmq:consume --once` в тесте → mock-шлюз → `delivered`.
 
 Локально (без Docker для PHP), если сервисы на localhost:
 
