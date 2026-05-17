@@ -17,13 +17,16 @@ cp .env.example .env
 docker compose up --build
 ```
 
-При первом старте entrypoint в контейнере `php` (с блокировкой на общем volume, чтобы не гоняться с воркерами):
+При первом старте только контейнер **`php`** выполняет bootstrap (`docker/php/docker-entrypoint.sh`):
 
 - `composer install`, если нет `vendor/`;
 - `php artisan key:generate`, если в `.env` ещё нет `APP_KEY=base64:...`;
-- миграции и объявление очередей RabbitMQ (`notifications:ensure-queues`).
+- миграции и объявление очередей RabbitMQ (`notifications:ensure-queues`);
+- создаёт маркер `bootstrap/cache/app-ready`.
 
-Пересборка образа после изменения `docker/php/docker-entrypoint.sh`: `docker compose up --build`.
+Воркеры (`worker-critical`, `worker-normal`) используют отдельный entrypoint и **ждут** этот маркер, `composer install` не запускают.
+
+Пересборка образа после изменения entrypoint-скриптов: `docker compose up --build`.
 
 Полный сброс данных (PostgreSQL, Redis):
 
